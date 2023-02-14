@@ -1,21 +1,38 @@
-use crate::{msg::SelectResponse, state::OWNER};
-use cosmwasm_std::{Deps, StdResult};
+use crate::{
+  models::ContractResult,
+  msg::SelectResponse,
+  state::{METADATA, OWNER, RAFFLE, TICKET_ORDERS, WALLET_METADATA},
+};
+use cosmwasm_std::{Deps, Order};
+use cw_repository::client::Repository;
 
 pub fn select(
   deps: Deps,
   fields: Option<Vec<String>>,
-) -> StdResult<SelectResponse> {
-  if let Some(fields) = fields {
-    Ok(SelectResponse {
-      owner: if fields.contains(&"owner".to_owned()) {
-        OWNER.may_load(deps.storage)?
-      } else {
-        None
-      },
-    })
-  } else {
-    Ok(SelectResponse {
-      owner: OWNER.may_load(deps.storage)?,
-    })
-  }
+) -> ContractResult<SelectResponse> {
+  let loader = Repository::loader(deps.storage, &fields);
+  Ok(SelectResponse {
+    owner: loader.get("owner", &OWNER)?,
+    raffle: loader.get("raffle", &RAFFLE)?,
+    metadata: loader.get("profile", &METADATA)?,
+    wallets: loader.view("wallets", || {
+      Ok(Some(
+        WALLET_METADATA
+          .range(deps.storage, None, None, Order::Descending)
+          .map(|result| {
+            let (_addr, meta) = result.unwrap();
+            meta
+          })
+          .collect(),
+      ))
+    })?,
+    orders: loader.view("orders", || {
+      Ok(Some(
+        TICKET_ORDERS
+          .iter(deps.storage)?
+          .map(|x| x.unwrap())
+          .collect(),
+      ))
+    })?,
+  })
 }

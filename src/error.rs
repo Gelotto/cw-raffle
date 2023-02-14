@@ -9,6 +9,15 @@ pub enum ContractError {
   #[error("NotAuthorized")]
   NotAuthorized {},
 
+  #[error("MissingFunds")]
+  MissingFunds {},
+
+  #[error("AlreadyClaimed")]
+  AlreadyClaimed {},
+
+  #[error("SoldOut")]
+  SoldOut {},
+
   #[error("ValidationError")]
   ValidationError {},
 }

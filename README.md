@@ -1,25 +1,54 @@
-# CosmWasm Project
+# CosmWasm General Asset Raffle Contract
 
-## Project Structure
+This is a smart contact for raffling any kind of asset, some which may be
+transferable by the contract itself, like tokens, or others which must be
+transferred off-chain.
 
-Contract are partitioned into _query_ and _execute_ functions. _Query_ functions
-read contract state; whereas, _execute_ functions may mutate state. These groups
-of functions are contained in distinct modules: `src/execute/` and `src/query/`.
-If the contract implements any other entrypoint, like `reply`, one can create a
-new `reply` module following the established pattern.
+## API
 
-## Building, Deploying, Instantiating
+### Execute Functions
 
-TODO
+```rust
+pub enum ExecuteMsg {
+  // buys a specified number of tickets, along with a "lucky message" that is
+  // displayed publicly in the front end when `is_visible` is set.
+  BuyTickets {
+    count: u32,
+    message: Option<String>,
+    is_visible: bool,
+  },
 
-## Execute Functions
+  // As the raffle owner, this triggers the random drawing of the winner
+  // address, transfering royalties as well as any auto-transferrable asset
+  // being raffled. This puts the raffle into the Completed state.
+  ChooseWinner {},
 
-### Change Ownership
+  // As the raffle owner, you can cancel the raffle so long as it is still in
+  // the Active state. Upon cancelation, the auto-transferable assets in the pot
+  // are transferred back to the raffle owner. At the same time, ticket holders
+  // can now claim refunds.
+  Cancel {},
 
-This lets you change the "owner" address associated with the contract.
+  // If the raffle has been canceled and is in the Canceled state, ticket
+  // holders can claim a full refund by calling this function.
+  ClaimRefund {},
 
-## Query Functions
+  // transfers ownership of the raffle contract to a given address.
+  TransferOwnership {
+    new_owner: Addr,
+  },
+}
+```
 
-### Select
+### Query Functions
 
-Return one or more specified properties from state.
+```rust
+pub enum QueryMsg {
+  // Selectively return named fields, including: owner, raffle, profile,
+  // wallets, orders.
+  Select { fields: Option<Vec<String>> },
+
+  // Return true if the given claimant address has successfully claimed a refund.
+  RefundStatus { claimant: Addr },
+}
+```
