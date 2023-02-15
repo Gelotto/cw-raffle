@@ -12,14 +12,15 @@ use cw_lib::{
   utils::funds::{build_cw20_transfer_msg, build_send_msg},
 };
 
-// addresses for base gelotto tax:
+// addresses for gelotto taxes:
 pub const GELOTTO_ADDR: &str = "juno1jume25ttjlcaqqjzjjqx9humvze3vcc8z87szj";
 pub const GELOTTO_ANNUAL_PRIZE_ADDR: &str = "juno1fxu5as8z5qxdulujzph3rm6c39r8427mjnx99r";
 pub const GELOTTO_NFT_1_REWARDS_ADDR: &str = "juno1tlyqv2ss4p9zelllxm39hq5g6zw384mvvym6tp";
 
+// percentages for tax allocations:
 pub const GELOTTO_PCT: u8 = 2;
-pub const GELOTTO_ANNUAL_PRIZE_PCT: u8 = 5;
 pub const GELOTTO_NFT_1_REWARDS_PCT: u8 = 3;
+pub const GELOTTO_ANNUAL_PRIZE_PCT: u8 = 5;
 
 pub fn choose_winner(
   deps: DepsMut,
@@ -82,7 +83,10 @@ pub fn choose_winner(
     })
     .collect();
 
-    let total_payment_amount =
+    // compute total amount of proceeds remaining after tax, which is further
+    // divided among royalty recipients, according to their assigned
+    // percentages.
+    let total_after_tax =
       (Uint128::from(100u8 - total_tax_pct) * total_amount) / Uint128::from(100u8);
 
     // build transfer msgs for sending proceeds to royalty recipients and gelotto
@@ -91,8 +95,7 @@ pub fn choose_winner(
         // send royalties
         for result in ROYALTIES.iter(deps.storage)? {
           if let Ok(recipient) = result {
-            let amount =
-              (Uint128::from(recipient.pct) * total_payment_amount) / Uint128::from(100u8);
+            let amount = (Uint128::from(recipient.pct) * total_after_tax) / Uint128::from(100u8);
             send_msgs.push(build_send_msg(&recipient.address, denom, amount)?);
           }
         }
@@ -106,8 +109,7 @@ pub fn choose_winner(
         // send royalties
         for result in ROYALTIES.iter(deps.storage)? {
           if let Ok(recipient) = result {
-            let amount =
-              (Uint128::from(recipient.pct) * total_payment_amount) / Uint128::from(100u8);
+            let amount = (Uint128::from(recipient.pct) * total_after_tax) / Uint128::from(100u8);
             cw20_transfer_msgs.push(build_cw20_transfer_msg(
               &recipient.address,
               cw20_addr,
