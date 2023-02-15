@@ -1,7 +1,7 @@
 use crate::{
   models::ContractResult,
   msg::SelectResponse,
-  state::{METADATA, OWNER, RAFFLE, TICKET_ORDERS, WALLET_METADATA},
+  state::{METADATA, OWNER, RAFFLE, ROYALTIES, TICKET_ORDERS, WALLET_METADATA},
 };
 use cosmwasm_std::{Deps, Order};
 use cw_repository::client::Repository;
@@ -24,6 +24,11 @@ pub fn select(
             meta
           })
           .collect(),
+      ))
+    })?,
+    royalties: loader.view("royalties", || {
+      Ok(Some(
+        ROYALTIES.iter(deps.storage)?.map(|x| x.unwrap()).collect(),
       ))
     })?,
     orders: loader.view("orders", || {

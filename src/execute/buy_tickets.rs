@@ -5,9 +5,11 @@ use crate::{
 };
 use cosmwasm_std::{attr, Binary, DepsMut, Empty, Env, MessageInfo, Response, Uint128};
 use cw_lib::{
+  models::Token,
   random::{Pcg64, RngComponent},
   utils::funds::{
-    build_cw20_transfer_msg, build_send_msg, has_funds, require_balance, require_cw20_token_balance,
+    build_cw20_transfer_from_msg, build_send_msg, has_funds, require_balance,
+    require_cw20_token_balance,
   },
 };
 
@@ -39,7 +41,7 @@ pub fn buy_tickets(
 
   // verify buyer can make payment
   match &raffle.price.token {
-    cw_lib::models::Token::Native { denom } => {
+    Token::Native { denom } => {
       require_balance(deps.querier, buyer, balance_required, denom, false)?;
       if !has_funds(&info.funds, balance_required, denom) {
         resp = resp.add_message(build_send_msg(
@@ -51,9 +53,13 @@ pub fn buy_tickets(
         return Err(ContractError::MissingFunds {});
       }
     },
-    cw_lib::models::Token::Cw20 { address: cw20_addr } => {
+    Token::Cw20 { address: cw20_addr } => {
       require_cw20_token_balance(deps.querier, buyer, balance_required, cw20_addr, false)?;
-      resp = resp.add_submessage(build_cw20_transfer_msg(
+      // NOTE: to allow the contract to transfer CW20 tokens to itself, this
+      // function must come after a msg to the CW20 token's increase_allowance
+      // function in the same transaction.
+      resp = resp.add_submessage(build_cw20_transfer_from_msg(
+        buyer,
         &env.contract.address,
         cw20_addr,
         balance_required,

@@ -1,4 +1,4 @@
-use crate::models::{Raffle, RaffleMetadata, RaffleStatus, WalletMetadata};
+use crate::models::{Raffle, RaffleMetadata, RaffleStatus, RoyaltyRecipient, WalletMetadata};
 use crate::msg::InstantiateMsg;
 use crate::{error::ContractError, models::TicketOrder};
 use cosmwasm_std::{Addr, Binary, DepsMut, Env, MessageInfo, StdResult, Storage};
@@ -9,6 +9,7 @@ pub const OWNER: Item<Addr> = Item::new("owner");
 pub const RAFFLE: Item<Raffle> = Item::new("raffle");
 pub const METADATA: Item<RaffleMetadata> = Item::new("raffle_metadata");
 pub const TICKET_ORDERS: Deque<TicketOrder> = Deque::new("ticket_orders");
+pub const ROYALTIES: Deque<RoyaltyRecipient> = Deque::new("royalties");
 pub const WALLET_METADATA: Map<Addr, WalletMetadata> = Map::new("wallet_metadata");
 pub const REFUND_STATUSES: Map<Addr, bool> = Map::new("refund_statuses");
 
@@ -20,6 +21,9 @@ pub fn initialize(
   msg: &InstantiateMsg,
 ) -> Result<(), ContractError> {
   OWNER.save(deps.storage, &info.sender)?;
+  for recipient in msg.royalties.iter() {
+    ROYALTIES.push_back(deps.storage, &recipient)?;
+  }
   METADATA.save(
     deps.storage,
     &RaffleMetadata {

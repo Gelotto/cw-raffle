@@ -50,6 +50,7 @@ pub struct SelectResponse {
   pub metadata: Option<RaffleMetadata>,
   pub orders: Option<Vec<TicketOrder>>,
   pub wallets: Option<Vec<WalletMetadata>>,
+  pub royalties: Option<Vec<RoyaltyRecipient>>,
 }
 
 #[cw_serde]
