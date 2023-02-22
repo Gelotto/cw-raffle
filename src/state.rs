@@ -1,4 +1,4 @@
-use crate::models::{Raffle, RaffleMetadata, RaffleStatus, RoyaltyRecipient, WalletMetadata};
+use crate::models::{Raffle, RaffleMarketingInfo, RaffleStatus, RoyaltyRecipient, WalletMetadata};
 use crate::msg::InstantiateMsg;
 use crate::{error::ContractError, models::TicketOrder};
 use cosmwasm_std::{Addr, Binary, DepsMut, Env, MessageInfo, StdResult, Storage};
@@ -7,7 +7,7 @@ use cw_storage_plus::{Deque, Item, Map};
 
 pub const OWNER: Item<Addr> = Item::new("owner");
 pub const RAFFLE: Item<Raffle> = Item::new("raffle");
-pub const METADATA: Item<RaffleMetadata> = Item::new("raffle_metadata");
+pub const MARKETING_INFO: Item<RaffleMarketingInfo> = Item::new("raffle_metadata");
 pub const TICKET_ORDERS: Deque<TicketOrder> = Deque::new("ticket_orders");
 pub const ROYALTIES: Deque<RoyaltyRecipient> = Deque::new("royalties");
 pub const WALLET_METADATA: Map<Addr, WalletMetadata> = Map::new("wallet_metadata");
@@ -24,15 +24,16 @@ pub fn initialize(
   for recipient in msg.royalties.iter() {
     ROYALTIES.push_back(deps.storage, &recipient)?;
   }
-  METADATA.save(
+  MARKETING_INFO.save(
     deps.storage,
-    &RaffleMetadata {
-      terms: msg.terms.clone(),
+    &RaffleMarketingInfo {
       style: msg.style.clone(),
-      name: msg.name.clone(),
+      raffle_name: msg.raffle_name.clone(),
       website: msg.website.clone(),
       description: msg.description.clone(),
       socials: msg.socials.clone(),
+      youtube_video_id: msg.youtube_video_id.clone(),
+      org_name: msg.org_name.clone(),
     },
   )?;
   RAFFLE.save(
@@ -45,6 +46,7 @@ pub fn initialize(
       ticket_sales_end_at: msg.ticket_sales_end_at,
       tickets_sold: 0,
       wallet_count: 0,
+      winner_address: None,
       seed: Binary::from(Pcg64::build_seed(&vec![
         RngComponent::Str(info.sender.to_string()),
         RngComponent::Int(env.block.time.nanos()),

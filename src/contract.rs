@@ -49,12 +49,13 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(
   deps: Deps,
-  _env: Env,
+  env: Env,
   msg: QueryMsg,
 ) -> ContractResult<Binary> {
   let result = match msg {
     QueryMsg::Select { fields } => to_binary(&query::select(deps, fields)?),
     QueryMsg::RefundStatus { claimant } => to_binary(&query::refund_status(deps, &claimant)?),
+    QueryMsg::Random {} => to_binary(&query::test_random(deps, &env)?),
   }?;
   Ok(result)
 }

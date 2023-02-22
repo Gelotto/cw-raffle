@@ -23,46 +23,53 @@ pub struct RoyaltyRecipient {
 #[cw_serde]
 pub enum Network {
   Stargaze,
+  Teritori,
 }
 
 #[cw_serde]
-pub struct Style {
-  background: String,
-  color: String,
+pub struct RaffleStyle {
+  ui_base_color: String,
+  ui_focus_color: Option<String>,
+  font_color: Option<String>,
+  bg_color: String,
+  bg_src: Option<String>,
   font_family: Option<String>,
 }
 
 #[cw_serde]
-pub struct SocialMediaUrls {
-  instagram: Option<String>,
-  facebook: Option<String>,
-  tiktok: Option<String>,
-  linkedin: Option<String>,
-  github: Option<String>,
-  reddit: Option<String>,
-  youtube: Option<String>,
-  twitter: Option<String>,
-  discord: Option<String>,
+pub enum SocialMediaUrl {
+  Instagram(String),
+  Facebook(String),
+  Tiktok(String),
+  Linkedin(String),
+  Github(String),
+  Reddit(String),
+  Youtube(String),
+  Twitter(String),
+  Discord(String),
 }
 
 #[cw_serde]
-pub enum Asset {
+pub enum RaffleAsset {
   Token {
     token: Token,
     amount: Uint128,
+    terms: Option<String>,
   },
   Nft {
     network: Network,
     url: Option<String>,
     collection_address: Addr,
     token_id: String,
+    terms: Option<String>,
   },
-  Other {
+  Asset {
     name: String,
     description: Option<String>,
     url: Option<String>,
     image: Option<String>,
     address: Option<Addr>,
+    terms: Option<String>,
   },
 }
 
@@ -71,30 +78,40 @@ pub struct TicketOrder {
   pub address: Addr,
   pub count: u32,
   pub cum_count: u32,
-  pub message: Option<String>,
   pub is_visible: bool,
 }
 
 #[cw_serde]
 pub struct Raffle {
   pub price: TokenAmount,
-  pub assets: Vec<Asset>,
+  pub assets: Vec<RaffleAsset>,
   pub status: RaffleStatus,
   pub ticket_supply: Option<u32>,
   pub ticket_sales_end_at: Option<Timestamp>,
+  pub winner_address: Option<Addr>,
   pub tickets_sold: u32,
   pub wallet_count: u32,
   pub seed: String,
 }
 
+impl Raffle {
+  pub fn is_sold_out(&self) -> bool {
+    if let Some(n) = self.ticket_supply {
+      return n == self.tickets_sold;
+    }
+    return false;
+  }
+}
+
 #[cw_serde]
-pub struct RaffleMetadata {
-  pub terms: Option<String>,
-  pub style: Style,
-  pub name: String,
+pub struct RaffleMarketingInfo {
+  pub style: RaffleStyle,
+  pub raffle_name: String,
+  pub org_name: Option<String>,
+  pub youtube_video_id: Option<String>,
   pub website: Option<String>,
   pub description: Option<String>,
-  pub socials: Option<Vec<SocialMediaUrls>>,
+  pub socials: Option<Vec<SocialMediaUrl>>,
 }
 
 #[cw_serde]
@@ -102,4 +119,7 @@ pub struct WalletMetadata {
   pub has_agreed_to_terms: bool,
   pub ticket_order_count: u16,
   pub ticket_count: u32,
+  pub address: Option<Addr>,
+  pub display_message: Option<String>,
+  pub has_claimed_refund: bool,
 }

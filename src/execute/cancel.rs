@@ -1,6 +1,6 @@
 use crate::{
   error::ContractError,
-  models::{Asset, ContractResult, RaffleStatus},
+  models::{ContractResult, RaffleAsset, RaffleStatus},
   state::{is_owner, OWNER, RAFFLE},
 };
 use cosmwasm_std::{attr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg};
@@ -31,7 +31,7 @@ pub fn cancel(
   // build msgs to transfer auto-transferable assets
   let owner = OWNER.load(deps.storage)?;
   for asset in raffle.assets.iter() {
-    if let Asset::Token { token, amount } = &asset {
+    if let RaffleAsset::Token { token, amount, .. } = &asset {
       match token {
         Token::Native { denom } => {
           native_transfer_msgs.push(build_send_msg(&owner, denom, *amount)?)

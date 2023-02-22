@@ -32,6 +32,14 @@ pub fn buy_tickets(
     }
   }
 
+  // abort if ticket sales period expired
+  if let Some(deadline) = raffle.ticket_sales_end_at {
+    if env.block.time >= deadline {
+      return Err(ContractError::SalesPeriodOver {});
+    }
+  }
+
+  // init return response, accumulating additional submessages below
   let mut resp: Response<Empty> = Response::new().add_attributes(vec![
     attr("action", "buy_tickets"),
     attr("count", count.to_string()),
@@ -43,7 +51,8 @@ pub fn buy_tickets(
   match &raffle.price.token {
     Token::Native { denom } => {
       require_balance(deps.querier, buyer, balance_required, denom, false)?;
-      if !has_funds(&info.funds, balance_required, denom) {
+      // ensure info.funds is as expected:
+      if has_funds(&info.funds, balance_required, denom) {
         resp = resp.add_message(build_send_msg(
           &env.contract.address,
           denom,
@@ -68,9 +77,9 @@ pub fn buy_tickets(
   }
 
   // update tickets sold and RNG seed
-  raffle.tickets_sold += count;
   raffle.seed = Binary::from(Pcg64::build_seed(&vec![
     RngComponent::Str(raffle.seed.clone()),
+    RngComponent::Str(message.clone().unwrap_or("".to_string())),
     RngComponent::Str(buyer.to_string()),
     RngComponent::Int(env.block.time.nanos()),
     RngComponent::Int(env.block.height),
@@ -93,29 +102,34 @@ pub fn buy_tickets(
       if let Some(mut meta) = maybe_meta {
         meta.ticket_count += count;
         meta.ticket_order_count += 1;
+        meta.display_message = if is_visible { message.clone() } else { None };
         Ok(meta)
       } else {
         Ok(WalletMetadata {
+          address: None, // address only set in query response
+          has_claimed_refund: false,
           has_agreed_to_terms: true,
           ticket_order_count: 1,
           ticket_count: count,
+          display_message: if is_visible { message.clone() } else { None },
         })
       }
     },
   )?;
-
-  RAFFLE.save(deps.storage, &raffle)?;
 
   TICKET_ORDERS.push_back(
     deps.storage,
     &TicketOrder {
       address: buyer.clone(),
       cum_count: raffle.tickets_sold + count,
-      message: message.clone(),
       is_visible,
       count,
     },
   )?;
+
+  raffle.tickets_sold += count;
+
+  RAFFLE.save(deps.storage, &raffle)?;
 
   Ok(resp)
 }
