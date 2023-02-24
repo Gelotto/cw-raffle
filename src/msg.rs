@@ -9,6 +9,7 @@ use crate::models::{
 
 #[cw_serde]
 pub struct InstantiateMsg {
+  pub owner: Addr,
   pub ticket_supply: Option<u32>,
   pub ticket_sales_end_at: Option<Timestamp>,
   pub royalties: Vec<RoyaltyRecipient>,
@@ -16,6 +17,7 @@ pub struct InstantiateMsg {
   pub org_name: Option<String>,
   pub youtube_video_id: Option<String>,
   pub website: Option<String>,
+  pub org_wallet: Option<Addr>,
   pub description: Option<String>,
   pub socials: Option<Vec<SocialMediaUrl>>,
   pub terms: Option<String>,

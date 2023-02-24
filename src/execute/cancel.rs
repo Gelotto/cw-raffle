@@ -1,7 +1,7 @@
 use crate::{
   error::ContractError,
   models::{ContractResult, RaffleAsset, RaffleStatus},
-  state::{is_owner, OWNER, RAFFLE},
+  state::{is_owner, repository, RAFFLE, RAFFLE_OWNER},
 };
 use cosmwasm_std::{attr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg};
 use cw_lib::{
@@ -29,7 +29,7 @@ pub fn cancel(
 
   // send contract balance back to raffle owner
   // build msgs to transfer auto-transferable assets
-  let owner = OWNER.load(deps.storage)?;
+  let owner = RAFFLE_OWNER.load(deps.storage)?;
   for asset in raffle.assets.iter() {
     if let RaffleAsset::Token { token, amount, .. } = &asset {
       match token {
@@ -50,6 +50,12 @@ pub fn cancel(
   Ok(
     Response::new()
       .add_attributes(vec![attr("action", "cancel")])
+      .add_message(
+        repository(deps.storage)?
+          .update()
+          .retag("active", "canceled")
+          .build_msg()?,
+      )
       .add_messages(native_transfer_msgs)
       .add_submessages(cw20_transfer_msgs),
   )

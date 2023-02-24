@@ -108,6 +108,7 @@ pub struct RaffleMarketingInfo {
   pub style: RaffleStyle,
   pub raffle_name: String,
   pub org_name: Option<String>,
+  pub org_wallet: Option<Addr>,
   pub youtube_video_id: Option<String>,
   pub website: Option<String>,
   pub description: Option<String>,

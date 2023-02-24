@@ -2,7 +2,7 @@ use crate::{
   error::ContractError,
   models::{ContractResult, RaffleAsset, RaffleStatus},
   selection::draw_winner,
-  state::{is_owner, RAFFLE, ROYALTIES},
+  state::{is_owner, repository, RAFFLE, ROYALTIES},
 };
 use cosmwasm_std::{attr, Addr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128};
 use cw_lib::{
@@ -67,7 +67,7 @@ pub fn choose_winner(
     }
   }
 
-  raffle.winner_address = Some(winning_addr);
+  raffle.winner_address = Some(winning_addr.clone());
 
   let total_amount = raffle.price.amount * Uint128::from(raffle.tickets_sold);
   let mut total_tax_pct = 0u8;
@@ -136,5 +136,13 @@ pub fn choose_winner(
     .add_messages(send_msgs)
     .add_submessages(cw20_transfer_msgs);
 
-  Ok(resp)
+  Ok(
+    resp.add_message(
+      repository(deps.storage)?
+        .update()
+        .retag("active", "complete")
+        .tag_address(&winning_addr, vec!["winner"])
+        .build_msg()?,
+    ),
+  )
 }

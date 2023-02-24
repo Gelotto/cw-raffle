@@ -1,7 +1,7 @@
 use crate::{
   error::ContractError,
   models::{ContractResult, TicketOrder, WalletMetadata},
-  state::{RAFFLE, TICKET_ORDERS, WALLET_METADATA},
+  state::{repository, IX_TICKETS_SOLD, IX_WALLET_COUNT, RAFFLE, TICKET_ORDERS, WALLET_METADATA},
 };
 use cosmwasm_std::{attr, Binary, DepsMut, Empty, Env, MessageInfo, Response, Uint128};
 use cw_lib::{
@@ -131,5 +131,14 @@ pub fn buy_tickets(
 
   RAFFLE.save(deps.storage, &raffle)?;
 
-  Ok(resp)
+  Ok(
+    resp.add_message(
+      repository(deps.storage)?
+        .update()
+        .set_u64(IX_TICKETS_SOLD, raffle.tickets_sold.into())
+        .set_u64(IX_WALLET_COUNT, raffle.wallet_count.into())
+        .tag_address(&buyer, vec!["player"])
+        .build_msg()?,
+    ),
+  )
 }

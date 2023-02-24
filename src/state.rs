@@ -1,11 +1,18 @@
-use crate::models::{Raffle, RaffleMarketingInfo, RaffleStatus, RoyaltyRecipient, WalletMetadata};
+use crate::models::{
+  ContractResult, Raffle, RaffleMarketingInfo, RaffleStatus, RoyaltyRecipient, WalletMetadata,
+};
 use crate::msg::InstantiateMsg;
 use crate::{error::ContractError, models::TicketOrder};
 use cosmwasm_std::{Addr, Binary, DepsMut, Env, MessageInfo, StdResult, Storage};
 use cw_lib::random::{Pcg64, RngComponent};
+use cw_repository::client::Repository;
 use cw_storage_plus::{Deque, Item, Map};
 
-pub const OWNER: Item<Addr> = Item::new("owner");
+pub const IX_TICKETS_SOLD: u8 = 0;
+pub const IX_WALLET_COUNT: u8 = 1;
+
+pub const REPO_CONTRACT_ADDR: Item<Addr> = Item::new("repo_contract_addr");
+pub const RAFFLE_OWNER: Item<Addr> = Item::new("raffle_owner");
 pub const RAFFLE: Item<Raffle> = Item::new("raffle");
 pub const MARKETING_INFO: Item<RaffleMarketingInfo> = Item::new("raffle_metadata");
 pub const TICKET_ORDERS: Deque<TicketOrder> = Deque::new("ticket_orders");
@@ -20,10 +27,14 @@ pub fn initialize(
   info: &MessageInfo,
   msg: &InstantiateMsg,
 ) -> Result<(), ContractError> {
-  OWNER.save(deps.storage, &info.sender)?;
+  REPO_CONTRACT_ADDR.save(deps.storage, &info.sender)?;
+
+  RAFFLE_OWNER.save(deps.storage, &msg.owner.clone())?;
+
   for recipient in msg.royalties.iter() {
     ROYALTIES.push_back(deps.storage, &recipient)?;
   }
+
   MARKETING_INFO.save(
     deps.storage,
     &RaffleMarketingInfo {
@@ -34,8 +45,10 @@ pub fn initialize(
       socials: msg.socials.clone(),
       youtube_video_id: msg.youtube_video_id.clone(),
       org_name: msg.org_name.clone(),
+      org_wallet: msg.org_wallet.clone(),
     },
   )?;
+
   RAFFLE.save(
     deps.storage,
     &Raffle {
@@ -70,5 +83,9 @@ pub fn is_owner(
   storage: &dyn Storage,
   addr: &Addr,
 ) -> StdResult<bool> {
-  return Ok(OWNER.load(storage)? == *addr);
+  return Ok(RAFFLE_OWNER.load(storage)? == *addr);
+}
+
+pub fn repository(store: &dyn Storage) -> ContractResult<Repository> {
+  Ok(Repository::new(&REPO_CONTRACT_ADDR.load(store)?))
 }
