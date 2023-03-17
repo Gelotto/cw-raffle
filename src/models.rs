@@ -4,6 +4,11 @@ use cw_lib::models::{Token, TokenAmount};
 
 use crate::error::ContractError;
 
+pub const RAFFLE_STAGE_HAS_BUYERS: u8 = 3;
+pub const RAFFLE_STAGE_ACTIVE: u8 = 2;
+pub const RAFFLE_STAGE_COMPLETED: u8 = 1;
+pub const RAFFLE_STAGE_CANCELED: u8 = 0;
+
 pub type ContractResult<T> = Result<T, ContractError>;
 
 #[cw_serde]
@@ -24,6 +29,7 @@ pub struct RoyaltyRecipient {
 pub enum Network {
   Stargaze,
   Teritori,
+  Juno,
 }
 
 #[cw_serde]
@@ -47,6 +53,7 @@ pub enum SocialMediaUrl {
   Youtube(String),
   Twitter(String),
   Discord(String),
+  Telegram(String),
 }
 
 #[cw_serde]
@@ -62,6 +69,7 @@ pub enum RaffleAsset {
     collection_address: Addr,
     token_id: String,
     terms: Option<String>,
+    image_url: Option<String>,
   },
   Asset {
     name: String,
@@ -77,7 +85,6 @@ pub enum RaffleAsset {
 pub struct TicketOrder {
   pub address: Addr,
   pub count: u32,
-  pub cum_count: u32,
   pub is_visible: bool,
 }
 
@@ -88,6 +95,7 @@ pub struct Raffle {
   pub status: RaffleStatus,
   pub ticket_supply: Option<u32>,
   pub ticket_sales_end_at: Option<Timestamp>,
+  pub ticket_sales_target: Option<u32>,
   pub winner_address: Option<Addr>,
   pub tickets_sold: u32,
   pub wallet_count: u32,
@@ -108,6 +116,7 @@ pub struct RaffleMarketingInfo {
   pub style: RaffleStyle,
   pub raffle_name: String,
   pub org_name: Option<String>,
+  pub org_logo_url: Option<String>,
   pub org_wallet: Option<Addr>,
   pub youtube_video_id: Option<String>,
   pub website: Option<String>,

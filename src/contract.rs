@@ -2,7 +2,7 @@
 use crate::error::ContractError;
 use crate::execute;
 use crate::models::ContractResult;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::query;
 use crate::state;
 use cosmwasm_std::entry_point;
@@ -43,6 +43,9 @@ pub fn execute(
     ExecuteMsg::ChooseWinner {} => execute::choose_winner(deps, env, info),
     ExecuteMsg::Cancel {} => execute::cancel(deps, env, info),
     ExecuteMsg::ClaimRefund {} => execute::claim_refund(deps, env, info),
+    ExecuteMsg::UpdateMarketing { marketing } => {
+      execute::update_marketing(deps, env, info, &marketing)
+    },
   }
 }
 
@@ -53,9 +56,18 @@ pub fn query(
   msg: QueryMsg,
 ) -> ContractResult<Binary> {
   let result = match msg {
-    QueryMsg::Select { fields } => to_binary(&query::select(deps, fields)?),
+    QueryMsg::Select { fields, wallet } => to_binary(&query::select(deps, fields, wallet)?),
     QueryMsg::RefundStatus { claimant } => to_binary(&query::refund_status(deps, &claimant)?),
     QueryMsg::Random {} => to_binary(&query::test_random(deps, &env)?),
   }?;
   Ok(result)
+}
+
+#[entry_point]
+pub fn migrate(
+  _deps: DepsMut,
+  _env: Env,
+  _msg: MigrateMsg,
+) -> Result<Response, ContractError> {
+  Ok(Response::default())
 }

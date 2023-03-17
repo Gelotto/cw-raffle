@@ -8,8 +8,12 @@ use cw_lib::random::{Pcg64, RngComponent};
 use cw_repository::client::Repository;
 use cw_storage_plus::{Deque, Item, Map};
 
-pub const IX_TICKETS_SOLD: u8 = 0;
-pub const IX_WALLET_COUNT: u8 = 1;
+pub const IX_U64_TICKETS_SOLD: u8 = 0;
+pub const IX_U64_WALLET_COUNT: u8 = 1;
+pub const IX_U64_STATUS: u8 = 2;
+
+pub const IX_STR_OWNER: u8 = 0;
+pub const IX_STR_ASSET: u8 = 1;
 
 pub const REPO_CONTRACT_ADDR: Item<Addr> = Item::new("repo_contract_addr");
 pub const RAFFLE_OWNER: Item<Addr> = Item::new("raffle_owner");
@@ -27,6 +31,26 @@ pub fn initialize(
   info: &MessageInfo,
   msg: &InstantiateMsg,
 ) -> Result<(), ContractError> {
+  // Ensure at least 1 ticket is available. If both ticket sales target and a
+  // finite ticket supply are defined, ensure that the supply is at least as
+  // much as the target.
+  if let Some(tick_supply) = msg.ticket_supply {
+    if tick_supply == 0 {
+      return Err(ContractError::InsufficientTicketSupply {});
+    }
+    if let Some(target) = msg.ticket_sales_target {
+      if tick_supply < target {
+        return Err(ContractError::InsufficientTicketSupply {});
+      }
+    }
+  }
+  // require at least 1 asset being raffled
+  if msg.assets.is_empty() {
+    return Err(ContractError::ValidationError {
+      reason: Some("at least one asset is required".into()),
+    });
+  }
+
   REPO_CONTRACT_ADDR.save(deps.storage, &info.sender)?;
 
   RAFFLE_OWNER.save(deps.storage, &msg.owner.clone())?;
@@ -46,6 +70,7 @@ pub fn initialize(
       youtube_video_id: msg.youtube_video_id.clone(),
       org_name: msg.org_name.clone(),
       org_wallet: msg.org_wallet.clone(),
+      org_logo_url: msg.org_logo_url.clone(),
     },
   )?;
 
@@ -57,6 +82,7 @@ pub fn initialize(
       status: RaffleStatus::Active,
       ticket_supply: msg.ticket_supply,
       ticket_sales_end_at: msg.ticket_sales_end_at,
+      ticket_sales_target: msg.ticket_sales_target,
       tickets_sold: 0,
       wallet_count: 0,
       winner_address: None,

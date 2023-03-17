@@ -1,7 +1,10 @@
 use crate::{
   error::ContractError,
-  models::{ContractResult, TicketOrder, WalletMetadata},
-  state::{repository, IX_TICKETS_SOLD, IX_WALLET_COUNT, RAFFLE, TICKET_ORDERS, WALLET_METADATA},
+  models::{ContractResult, TicketOrder, WalletMetadata, RAFFLE_STAGE_HAS_BUYERS},
+  state::{
+    repository, IX_U64_STATUS, IX_U64_TICKETS_SOLD, IX_U64_WALLET_COUNT, RAFFLE, TICKET_ORDERS,
+    WALLET_METADATA,
+  },
 };
 use cosmwasm_std::{attr, Binary, DepsMut, Empty, Env, MessageInfo, Response, Uint128};
 use cw_lib::{
@@ -105,6 +108,7 @@ pub fn buy_tickets(
         meta.display_message = if is_visible { message.clone() } else { None };
         Ok(meta)
       } else {
+        raffle.wallet_count += 1;
         Ok(WalletMetadata {
           address: None, // address only set in query response
           has_claimed_refund: false,
@@ -121,7 +125,6 @@ pub fn buy_tickets(
     deps.storage,
     &TicketOrder {
       address: buyer.clone(),
-      cum_count: raffle.tickets_sold + count,
       is_visible,
       count,
     },
@@ -135,9 +138,10 @@ pub fn buy_tickets(
     resp.add_message(
       repository(deps.storage)?
         .update()
-        .set_u64(IX_TICKETS_SOLD, raffle.tickets_sold.into())
-        .set_u64(IX_WALLET_COUNT, raffle.wallet_count.into())
-        .tag_address(&buyer, vec!["player"])
+        .set_u64(IX_U64_TICKETS_SOLD, raffle.tickets_sold.into())
+        .set_u64(IX_U64_WALLET_COUNT, raffle.wallet_count.into())
+        .set_u64(IX_U64_STATUS, RAFFLE_STAGE_HAS_BUYERS as u64)
+        .add_relationship(&buyer, "player")
         .build_msg()?,
     ),
   )

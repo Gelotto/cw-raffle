@@ -200,24 +200,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw-contract"
-version = "0.0.1"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-lib",
- "cw-multi-test",
- "cw-storage-plus",
- "cw-utils",
- "cw2",
- "cw20",
- "cw_repository",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "cw-lib"
 version = "0.1.0"
 dependencies = [
@@ -245,6 +227,24 @@ dependencies = [
  "itertools",
  "k256",
  "prost",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "cw-raffle"
+version = "0.0.3"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-lib",
+ "cw-multi-test",
+ "cw-storage-plus",
+ "cw-utils",
+ "cw2",
+ "cw20",
+ "cw_repository",
  "schemars",
  "serde",
  "thiserror",

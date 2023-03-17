@@ -3,12 +3,13 @@ use crate::{
   msg::SelectResponse,
   state::{MARKETING_INFO, RAFFLE, RAFFLE_OWNER, ROYALTIES, TICKET_ORDERS, WALLET_METADATA},
 };
-use cosmwasm_std::{Deps, Order};
+use cosmwasm_std::{Addr, Deps, Order};
 use cw_repository::client::Repository;
 
 pub fn select(
   deps: Deps,
   fields: Option<Vec<String>>,
+  _wallet: Option<Addr>,
 ) -> ContractResult<SelectResponse> {
   let loader = Repository::loader(deps.storage, &fields);
   Ok(SelectResponse {

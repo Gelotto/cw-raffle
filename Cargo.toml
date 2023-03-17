@@ -1,9 +1,9 @@
 [package]
-name = "cw-contract"
-version = "0.0.1"
+name = "cw-raffle"
+version = "0.0.3"
 authors = []
 edition = "2018"
-description = "Smart Contract"
+description = "Raffle Smart Contract"
 license = "Apache-2.0"
 repository = ""
 homepage = ""

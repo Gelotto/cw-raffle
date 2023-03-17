@@ -18,6 +18,12 @@ pub enum ContractError {
   #[error("MissingFunds")]
   MissingFunds {},
 
+  #[error("BelowTicketSalesThreshold")]
+  BelowTicketSalesThreshold {},
+
+  #[error("InsufficientTicketSupply")]
+  InsufficientTicketSupply {},
+
   #[error("AlreadyClaimed")]
   AlreadyClaimed {},
 
@@ -28,5 +34,5 @@ pub enum ContractError {
   SoldOut {},
 
   #[error("ValidationError")]
-  ValidationError {},
+  ValidationError { reason: Option<String> },
 }

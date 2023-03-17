@@ -1,7 +1,7 @@
 use crate::{
   error::ContractError,
-  models::{ContractResult, RaffleAsset, RaffleStatus},
-  state::{is_owner, repository, RAFFLE, RAFFLE_OWNER},
+  models::{ContractResult, RaffleAsset, RaffleStatus, RAFFLE_STAGE_CANCELED},
+  state::{is_owner, repository, IX_U64_STATUS, RAFFLE, RAFFLE_OWNER},
 };
 use cosmwasm_std::{attr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg};
 use cw_lib::{
@@ -53,7 +53,7 @@ pub fn cancel(
       .add_message(
         repository(deps.storage)?
           .update()
-          .retag("active", "canceled")
+          .set_u64(IX_U64_STATUS, RAFFLE_STAGE_CANCELED as u64)
           .build_msg()?,
       )
       .add_messages(native_transfer_msgs)

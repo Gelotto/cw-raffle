@@ -1,6 +1,6 @@
 use crate::{
   error::ContractError,
-  state::{is_owner, repository, RAFFLE_OWNER},
+  state::{is_owner, repository, IX_STR_OWNER, RAFFLE_OWNER},
 };
 use cosmwasm_std::{attr, Addr, DepsMut, Env, MessageInfo, Response};
 
@@ -23,8 +23,7 @@ pub fn transfer_ownership(
       .add_message(
         repository(deps.storage)?
           .update()
-          .untag_address(&info.sender, vec!["owner"])
-          .tag_address(&new_owner, vec!["owner"])
+          .set_string(IX_STR_OWNER, &new_owner.to_string())
           .build_msg()?,
       ),
   )

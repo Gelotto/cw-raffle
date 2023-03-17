@@ -1,8 +1,8 @@
 use crate::{
   error::ContractError,
-  models::{ContractResult, RaffleAsset, RaffleStatus},
+  models::{ContractResult, RaffleAsset, RaffleStatus, RAFFLE_STAGE_COMPLETED},
   selection::draw_winner,
-  state::{is_owner, repository, RAFFLE, ROYALTIES},
+  state::{is_owner, repository, IX_U64_STATUS, RAFFLE, ROYALTIES},
 };
 use cosmwasm_std::{attr, Addr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128};
 use cw_lib::{
@@ -14,11 +14,16 @@ use cw_lib::{
 pub const GELOTTO_ADDR: &str = "juno1jume25ttjlcaqqjzjjqx9humvze3vcc8z87szj";
 pub const GELOTTO_ANNUAL_PRIZE_ADDR: &str = "juno1fxu5as8z5qxdulujzph3rm6c39r8427mjnx99r";
 pub const GELOTTO_NFT_1_REWARDS_ADDR: &str = "juno1tlyqv2ss4p9zelllxm39hq5g6zw384mvvym6tp";
+pub const GELOTTO_NFT_2_REWARDS_ADDR: &str = "juno13c97054tjktvzvgqe2xfxj28j6wmhhlz03ut32";
+pub const GELOTTO_OWNERS_ADDR: &str = "juno1dunhw3y4m6lu642lk20hfq9q3scr70l2vuyrwj";
 
 // percentages for tax allocations:
-pub const GELOTTO_PCT: u8 = 2;
-pub const GELOTTO_NFT_1_REWARDS_PCT: u8 = 3;
 pub const GELOTTO_ANNUAL_PRIZE_PCT: u8 = 5;
+pub const GELOTTO_PCT: u8 = 1;
+pub const GELOTTO_NFT_1_REWARDS_PCT: u8 = 1;
+pub const GELOTTO_NFT_2_REWARDS_PCT: u8 = 1;
+pub const GELOTTO_OWNERS_PCT: u8 = 1;
+pub const RAFFLE_CREATOR_PCT: u8 = 1;
 
 pub fn choose_winner(
   deps: DepsMut,
@@ -35,6 +40,12 @@ pub fn choose_winner(
     return Err(ContractError::AlreadyClaimed {});
   }
 
+  if let Some(threshold) = raffle.ticket_sales_target {
+    if raffle.tickets_sold < threshold {
+      return Err(ContractError::BelowTicketSalesThreshold {});
+    }
+  }
+
   // prevent raffle from being double-ended
   if raffle.status != RaffleStatus::Active || raffle.winner_address.is_some() {
     return Err(ContractError::NotActive {});
@@ -44,7 +55,10 @@ pub fn choose_winner(
   // this raffle but time hasn't expired, only continue if the raffle's tickets
   // are completely sold out. otherwise, make them wait.
   if let Some(sales_end_at) = raffle.ticket_sales_end_at {
-    if env.block.time < sales_end_at && !raffle.is_sold_out() {
+    if env.block.time < sales_end_at
+      && raffle.ticket_sales_end_at.is_some()
+      && !raffle.is_sold_out()
+    {
       return Err(ContractError::NotSoldOut {});
     }
   }
@@ -67,8 +81,6 @@ pub fn choose_winner(
     }
   }
 
-  raffle.winner_address = Some(winning_addr.clone());
-
   let total_amount = raffle.price.amount * Uint128::from(raffle.tickets_sold);
   let mut total_tax_pct = 0u8;
 
@@ -77,6 +89,9 @@ pub fn choose_winner(
     (GELOTTO_ADDR, GELOTTO_PCT),
     (GELOTTO_ANNUAL_PRIZE_ADDR, GELOTTO_ANNUAL_PRIZE_PCT),
     (GELOTTO_NFT_1_REWARDS_ADDR, GELOTTO_NFT_1_REWARDS_PCT),
+    (GELOTTO_NFT_2_REWARDS_ADDR, GELOTTO_NFT_2_REWARDS_PCT),
+    (GELOTTO_OWNERS_ADDR, GELOTTO_OWNERS_PCT),
+    (info.sender.as_str(), RAFFLE_CREATOR_PCT),
   ]
   .iter()
   .map(|(s, n)| {
@@ -128,6 +143,7 @@ pub fn choose_winner(
   }
 
   raffle.status = RaffleStatus::Complete;
+  raffle.winner_address = Some(winning_addr.clone());
 
   RAFFLE.save(deps.storage, &raffle)?;
 
@@ -140,8 +156,8 @@ pub fn choose_winner(
     resp.add_message(
       repository(deps.storage)?
         .update()
-        .retag("active", "complete")
-        .tag_address(&winning_addr, vec!["winner"])
+        .set_u64(IX_U64_STATUS, RAFFLE_STAGE_COMPLETED as u64)
+        .add_relationship(&winning_addr, "winner")
         .build_msg()?,
     ),
   )
