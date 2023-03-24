@@ -5,15 +5,17 @@ use crate::{
 };
 use cosmwasm_std::{attr, DepsMut, Env, MessageInfo, Response};
 
-pub fn update_marketing(
+pub fn update(
   deps: DepsMut,
   _env: Env,
   info: MessageInfo,
-  updated_marketing_info: &RaffleMarketingInfo,
+  maybe_marketing: &Option<RaffleMarketingInfo>,
 ) -> Result<Response, ContractError> {
   if !is_owner(deps.storage, &info.sender)? {
     return Err(ContractError::NotAuthorized {});
   }
-  MARKETING_INFO.save(deps.storage, updated_marketing_info)?;
-  Ok(Response::new().add_attributes(vec![attr("action", "update_marketing")]))
+  if let Some(marketing) = maybe_marketing {
+    MARKETING_INFO.save(deps.storage, marketing)?;
+  }
+  Ok(Response::new().add_attributes(vec![attr("action", "update")]))
 }

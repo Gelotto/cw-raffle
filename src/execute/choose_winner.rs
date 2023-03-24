@@ -55,10 +55,7 @@ pub fn choose_winner(
   // this raffle but time hasn't expired, only continue if the raffle's tickets
   // are completely sold out. otherwise, make them wait.
   if let Some(sales_end_at) = raffle.ticket_sales_end_at {
-    if env.block.time < sales_end_at
-      && raffle.ticket_sales_end_at.is_some()
-      && !raffle.is_sold_out()
-    {
+    if env.block.time < sales_end_at {
       return Err(ContractError::NotSoldOut {});
     }
   }

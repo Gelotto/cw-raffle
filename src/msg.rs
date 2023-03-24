@@ -41,8 +41,8 @@ pub enum ExecuteMsg {
   ChooseWinner {},
   Cancel {},
   ClaimRefund {},
-  UpdateMarketing {
-    marketing: RaffleMarketingInfo,
+  Update {
+    marketing: Option<RaffleMarketingInfo>,
   },
 }
 

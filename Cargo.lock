@@ -186,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "cw-acl"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -304,7 +304,7 @@ dependencies = [
 
 [[package]]
 name = "cw_repository"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",

@@ -43,9 +43,7 @@ pub fn execute(
     ExecuteMsg::ChooseWinner {} => execute::choose_winner(deps, env, info),
     ExecuteMsg::Cancel {} => execute::cancel(deps, env, info),
     ExecuteMsg::ClaimRefund {} => execute::claim_refund(deps, env, info),
-    ExecuteMsg::UpdateMarketing { marketing } => {
-      execute::update_marketing(deps, env, info, &marketing)
-    },
+    ExecuteMsg::Update { marketing } => execute::update(deps, env, info, &marketing),
   }
 }
 
