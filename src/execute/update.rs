@@ -1,7 +1,7 @@
 use crate::{
   error::ContractError,
   models::RaffleMarketingInfo,
-  state::{is_owner, MARKETING_INFO},
+  state::{is_allowed, MARKETING_INFO},
 };
 use cosmwasm_std::{attr, DepsMut, Env, MessageInfo, Response};
 
@@ -11,7 +11,7 @@ pub fn update(
   info: MessageInfo,
   maybe_marketing: &Option<RaffleMarketingInfo>,
 ) -> Result<Response, ContractError> {
-  if !is_owner(deps.storage, &info.sender)? {
+  if !is_allowed(&deps.as_ref(), &info.sender, "update")? {
     return Err(ContractError::NotAuthorized {});
   }
   if let Some(marketing) = maybe_marketing {

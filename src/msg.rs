@@ -10,6 +10,7 @@ use crate::models::{
 #[cw_serde]
 pub struct InstantiateMsg {
   pub owner: Addr,
+  pub acl_address: Option<Addr>,
   pub ticket_supply: Option<u32>,
   pub ticket_sales_end_at: Option<Timestamp>,
   pub ticket_sales_target: Option<u32>,
@@ -59,11 +60,14 @@ pub enum QueryMsg {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {}
+pub struct MigrateMsg {
+  pub acl_address: Option<Addr>,
+}
 
 #[cw_serde]
 pub struct SelectResponse {
   pub owner: Option<Addr>,
+  pub acl_address: Option<Addr>,
   pub raffle: Option<Raffle>,
   pub marketing: Option<RaffleMarketingInfo>,
   pub orders: Option<Vec<TicketOrder>>,

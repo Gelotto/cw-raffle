@@ -186,10 +186,11 @@ dependencies = [
 
 [[package]]
 name = "cw-acl"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
+ "cw-lib",
  "cw-storage-plus",
  "cw-utils",
  "cw2",
@@ -234,10 +235,11 @@ dependencies = [
 
 [[package]]
 name = "cw-raffle"
-version = "0.0.3"
+version = "0.0.31"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
+ "cw-acl",
  "cw-lib",
  "cw-multi-test",
  "cw-storage-plus",
@@ -309,6 +311,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-acl",
+ "cw-lib",
  "cw-storage-plus",
  "cw-utils",
  "cw2",

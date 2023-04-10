@@ -2,7 +2,7 @@ use crate::{
   error::ContractError,
   models::{ContractResult, RaffleAsset, RaffleStatus, RAFFLE_STAGE_COMPLETED},
   selection::draw_winner,
-  state::{is_owner, repository, IX_U64_STATUS, RAFFLE, ROYALTIES},
+  state::{is_allowed, repository, IX_U64_STATUS, RAFFLE, ROYALTIES},
 };
 use cosmwasm_std::{attr, Addr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128};
 use cw_lib::{
@@ -13,7 +13,7 @@ use cw_lib::{
 // addresses for gelotto taxes:
 pub const GELOTTO_ADDR: &str = "juno1jume25ttjlcaqqjzjjqx9humvze3vcc8z87szj";
 pub const GELOTTO_ANNUAL_PRIZE_ADDR: &str = "juno1fxu5as8z5qxdulujzph3rm6c39r8427mjnx99r";
-pub const GELOTTO_NFT_1_REWARDS_ADDR: &str = "juno1tlyqv2ss4p9zelllxm39hq5g6zw384mvvym6tp";
+pub const GELOTTO_NFT_1_REWARDS_ADDR: &str = "juno18fd2xax0uh9dxusg8uae5rkeu8a4sv3gk6zm7h";
 pub const GELOTTO_NFT_2_REWARDS_ADDR: &str = "juno13c97054tjktvzvgqe2xfxj28j6wmhhlz03ut32";
 pub const GELOTTO_OWNERS_ADDR: &str = "juno1dunhw3y4m6lu642lk20hfq9q3scr70l2vuyrwj";
 
@@ -30,7 +30,7 @@ pub fn choose_winner(
   env: Env,
   info: MessageInfo,
 ) -> ContractResult<Response> {
-  if !is_owner(deps.storage, &info.sender)? {
+  if !is_allowed(&deps.as_ref(), &info.sender, "choose_winner")? {
     return Err(ContractError::NotAuthorized {});
   }
 

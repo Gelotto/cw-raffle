@@ -1,7 +1,7 @@
 use crate::{
   error::ContractError,
   models::{ContractResult, RaffleAsset, RaffleStatus, RAFFLE_STAGE_CANCELED},
-  state::{is_owner, repository, IX_U64_STATUS, RAFFLE, RAFFLE_OWNER},
+  state::{is_allowed, repository, IX_U64_STATUS, RAFFLE, RAFFLE_OWNER},
 };
 use cosmwasm_std::{attr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg};
 use cw_lib::{
@@ -14,9 +14,10 @@ pub fn cancel(
   _env: Env,
   info: MessageInfo,
 ) -> ContractResult<Response> {
-  if !is_owner(deps.storage, &info.sender)? {
+  if !is_allowed(&deps.as_ref(), &info.sender, "cancel")? {
     return Err(ContractError::NotAuthorized {});
   }
+
   let mut raffle = RAFFLE.load(deps.storage)?;
 
   // prevent raffle from being double-ended

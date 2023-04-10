@@ -3,7 +3,8 @@ use crate::models::{
 };
 use crate::msg::InstantiateMsg;
 use crate::{error::ContractError, models::TicketOrder};
-use cosmwasm_std::{Addr, Binary, DepsMut, Env, MessageInfo, StdResult, Storage};
+use cosmwasm_std::{Addr, Binary, Deps, DepsMut, Env, MessageInfo, StdResult, Storage};
+use cw_acl::client::Acl;
 use cw_lib::random::{Pcg64, RngComponent};
 use cw_repository::client::Repository;
 use cw_storage_plus::{Deque, Item, Map};
@@ -16,6 +17,7 @@ pub const IX_STR_OWNER: u8 = 0;
 pub const IX_STR_ASSET: u8 = 1;
 
 pub const REPO_CONTRACT_ADDR: Item<Addr> = Item::new("repo_contract_addr");
+pub const ACL_ADDRESS: Item<Addr> = Item::new("acl_contract_addr");
 pub const RAFFLE_OWNER: Item<Addr> = Item::new("raffle_owner");
 pub const RAFFLE: Item<Raffle> = Item::new("raffle");
 pub const MARKETING_INFO: Item<RaffleMarketingInfo> = Item::new("raffle_metadata");
@@ -54,6 +56,10 @@ pub fn initialize(
   REPO_CONTRACT_ADDR.save(deps.storage, &info.sender)?;
 
   RAFFLE_OWNER.save(deps.storage, &msg.owner.clone())?;
+
+  if let Some(acl_addr) = &msg.acl_address {
+    ACL_ADDRESS.save(deps.storage, acl_addr)?;
+  }
 
   for recipient in msg.royalties.iter() {
     ROYALTIES.push_back(deps.storage, &recipient)?;
@@ -114,4 +120,21 @@ pub fn is_owner(
 
 pub fn repository(store: &dyn Storage) -> ContractResult<Repository> {
   Ok(Repository::new(&REPO_CONTRACT_ADDR.load(store)?))
+}
+
+/// Helper function that returns true if given wallet (principal) is authorized
+/// by ACL to the given action.
+pub fn is_allowed(
+  deps: &Deps,
+  principal: &Addr,
+  action: &str,
+) -> Result<bool, ContractError> {
+  if is_owner(deps.storage, principal)? {
+    Ok(true)
+  } else if let Some(acl_addr) = ACL_ADDRESS.may_load(deps.storage)? {
+    let acl = Acl::new(&acl_addr);
+    Ok(acl.is_allowed(&deps.querier, principal, action)?)
+  } else {
+    Ok(false)
+  }
 }

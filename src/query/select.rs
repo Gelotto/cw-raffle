@@ -1,7 +1,9 @@
 use crate::{
   models::{ContractResult, WalletMetadata},
   msg::SelectResponse,
-  state::{MARKETING_INFO, RAFFLE, RAFFLE_OWNER, ROYALTIES, TICKET_ORDERS, WALLET_METADATA},
+  state::{
+    ACL_ADDRESS, MARKETING_INFO, RAFFLE, RAFFLE_OWNER, ROYALTIES, TICKET_ORDERS, WALLET_METADATA,
+  },
 };
 use cosmwasm_std::{Addr, Deps, Order};
 use cw_repository::client::Repository;
@@ -14,6 +16,8 @@ pub fn select(
   let loader = Repository::loader(deps.storage, &fields);
   Ok(SelectResponse {
     owner: loader.get("owner", &RAFFLE_OWNER)?,
+
+    acl_address: loader.get("acl_address", &ACL_ADDRESS)?,
 
     raffle: loader.get("raffle", &RAFFLE)?,
 

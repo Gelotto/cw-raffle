@@ -13,7 +13,7 @@ deploy:
 
 # instantiate last contract to be deployed using code ID in release dir code-id file
 instantiate:
-	./bin/instantiate $(network) $(sender) $(tag)
+	./bin/instantiate $(network) $(sender) $(tag) $(acl)
 
 # run all unit tests
 test:

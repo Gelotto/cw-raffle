@@ -4,7 +4,7 @@ use crate::execute;
 use crate::models::ContractResult;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::query;
-use crate::state;
+use crate::state::{self, ACL_ADDRESS};
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response};
 use cw2::set_contract_version;
@@ -63,9 +63,12 @@ pub fn query(
 
 #[entry_point]
 pub fn migrate(
-  _deps: DepsMut,
+  deps: DepsMut,
   _env: Env,
-  _msg: MigrateMsg,
+  msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
+  if let Some(acl_addr) = msg.acl_address {
+    ACL_ADDRESS.save(deps.storage, &acl_addr)?;
+  }
   Ok(Response::default())
 }
