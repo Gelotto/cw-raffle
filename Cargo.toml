@@ -1,6 +1,6 @@
 [package]
 name = "cw-raffle"
-version = "0.0.31"
+version = "0.0.32"
 authors = []
 edition = "2018"
 description = "Raffle Smart Contract"

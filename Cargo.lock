@@ -236,7 +236,7 @@ dependencies = [
 
 [[package]]
 name = "cw-raffle"
-version = "0.0.31"
+version = "0.0.32"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
