@@ -11,8 +11,7 @@ use cw_lib::{
   models::Token,
   random::{Pcg64, RngComponent},
   utils::funds::{
-    build_cw20_transfer_from_msg, build_send_msg, has_funds, require_balance,
-    require_cw20_token_balance,
+    build_cw20_transfer_from_msg, build_send_msg, has_funds, require_cw20_token_balance,
   },
 };
 
@@ -53,7 +52,6 @@ pub fn buy_tickets(
   // verify buyer can make payment
   match &raffle.price.token {
     Token::Native { denom } => {
-      require_balance(deps.querier, buyer, balance_required, denom, false)?;
       // ensure info.funds is as expected:
       if has_funds(&info.funds, balance_required, denom) {
         resp = resp.add_message(build_send_msg(

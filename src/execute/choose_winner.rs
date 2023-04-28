@@ -2,7 +2,7 @@ use crate::{
   error::ContractError,
   models::{ContractResult, RaffleAsset, RaffleStatus, RAFFLE_STAGE_COMPLETED},
   selection::draw_winner,
-  state::{is_allowed, repository, IX_U64_STATUS, RAFFLE, ROYALTIES},
+  state::{is_allowed, repository, IX_U64_STATUS, RAFFLE, RAFFLE_OWNER, ROYALTIES},
 };
 use cosmwasm_std::{attr, Addr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128};
 use cw_lib::{
@@ -79,6 +79,7 @@ pub fn choose_winner(
   }
 
   let total_amount = raffle.price.amount * Uint128::from(raffle.tickets_sold);
+  let owner = RAFFLE_OWNER.load(deps.storage)?;
   let mut total_tax_pct = 0u8;
 
   // prepare list of (addr, tax_amount) tuples for building send msgs
@@ -88,7 +89,7 @@ pub fn choose_winner(
     (GELOTTO_NFT_1_REWARDS_ADDR, GELOTTO_NFT_1_REWARDS_PCT),
     (GELOTTO_NFT_2_REWARDS_ADDR, GELOTTO_NFT_2_REWARDS_PCT),
     (GELOTTO_OWNERS_ADDR, GELOTTO_OWNERS_PCT),
-    (info.sender.as_str(), RAFFLE_CREATOR_PCT),
+    (owner.as_str(), RAFFLE_CREATOR_PCT),
   ]
   .iter()
   .map(|(s, n)| {
