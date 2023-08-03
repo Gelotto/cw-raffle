@@ -122,6 +122,7 @@ pub struct RaffleMarketingInfo {
   pub website: Option<String>,
   pub description: Option<String>,
   pub socials: Option<Vec<SocialMediaUrl>>,
+  pub terms: Option<String>,
 }
 
 #[cw_serde]

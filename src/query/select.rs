@@ -11,9 +11,9 @@ use cw_repository::client::Repository;
 pub fn select(
   deps: Deps,
   fields: Option<Vec<String>>,
-  _wallet: Option<Addr>,
+  wallet: Option<Addr>,
 ) -> ContractResult<SelectResponse> {
-  let loader = Repository::loader(deps.storage, &fields);
+  let loader = Repository::loader(deps.storage, &fields, &wallet);
   Ok(SelectResponse {
     owner: loader.get("owner", &RAFFLE_OWNER)?,
 
@@ -23,7 +23,7 @@ pub fn select(
 
     marketing: loader.get("marketing", &MARKETING_INFO)?,
 
-    wallets: loader.view("wallets", || {
+    wallets: loader.view("wallets", |_| {
       let mut wallet_metas: Vec<WalletMetadata> = WALLET_METADATA
         .range(deps.storage, None, None, Order::Descending)
         .map(|result| {
@@ -37,13 +37,13 @@ pub fn select(
       Ok(Some(wallet_metas))
     })?,
 
-    royalties: loader.view("royalties", || {
+    royalties: loader.view("royalties", |_| {
       Ok(Some(
         ROYALTIES.iter(deps.storage)?.map(|x| x.unwrap()).collect(),
       ))
     })?,
 
-    orders: loader.view("orders", || {
+    orders: loader.view("orders", |_| {
       Ok(Some(
         TICKET_ORDERS
           .iter(deps.storage)?

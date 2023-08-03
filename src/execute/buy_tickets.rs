@@ -2,11 +2,11 @@ use crate::{
   error::ContractError,
   models::{ContractResult, TicketOrder, WalletMetadata, RAFFLE_STAGE_HAS_BUYERS},
   state::{
-    repository, IX_U64_STATUS, IX_U64_TICKETS_SOLD, IX_U64_WALLET_COUNT, RAFFLE, TICKET_ORDERS,
-    WALLET_METADATA,
+    repository, HOUSE_ADDR, IX_U64_STATUS, IX_U64_TICKETS_SOLD, IX_U64_WALLET_COUNT, RAFFLE,
+    TICKET_ORDERS, WALLET_METADATA,
   },
 };
-use cosmwasm_std::{attr, Binary, DepsMut, Empty, Env, MessageInfo, Response, Uint128};
+use cosmwasm_std::{attr, Addr, Binary, DepsMut, Empty, Env, MessageInfo, Response, Uint128};
 use cw_lib::{
   models::Token,
   random::{Pcg64, RngComponent},
@@ -14,6 +14,9 @@ use cw_lib::{
     build_cw20_transfer_from_msg, build_send_msg, has_funds, require_cw20_token_balance,
   },
 };
+use house_staking::client::House;
+
+const GLTO_CW20_ADDR: &str = "juno1j0a9ymgngasfn3l5me8qpd53l5zlm9wurfdk7r65s5mg6tkxal3qpgf5se";
 
 pub fn buy_tickets(
   deps: DepsMut,
@@ -65,15 +68,26 @@ pub fn buy_tickets(
     },
     Token::Cw20 { address: cw20_addr } => {
       require_cw20_token_balance(deps.querier, buyer, balance_required, cw20_addr, false)?;
+      let is_glto = *cw20_addr == Addr::unchecked(GLTO_CW20_ADDR);
+      let house_revenue = if is_glto {
+        balance_required.multiply_ratio(5u128, 100u128)
+      } else {
+        Uint128::zero()
+      };
       // NOTE: to allow the contract to transfer CW20 tokens to itself, this
       // function must come after a msg to the CW20 token's increase_allowance
       // function in the same transaction.
-      resp = resp.add_submessage(build_cw20_transfer_from_msg(
+      resp = resp.add_message(build_cw20_transfer_from_msg(
         buyer,
         &env.contract.address,
         cw20_addr,
-        balance_required,
+        balance_required - house_revenue,
       )?);
+      // If the token used is GLTO, send 5% of the payment amount to the house.
+      if is_glto {
+        let house = House::new(&Addr::unchecked(HOUSE_ADDR));
+        resp = resp.add_messages(house.receive(raffle.price.token.clone(), house_revenue, None)?)
+      }
     },
   }
 

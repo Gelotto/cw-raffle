@@ -9,6 +9,8 @@ use cw_lib::random::{Pcg64, RngComponent};
 use cw_repository::client::Repository;
 use cw_storage_plus::{Deque, Item, Map};
 
+pub const HOUSE_ADDR: &str = "juno14grw0ge33v2f08yapt5608vhm3d89f5xwmvvw8xeazyvwapm9v6sq86th5";
+
 pub const IX_U64_TICKETS_SOLD: u8 = 0;
 pub const IX_U64_WALLET_COUNT: u8 = 1;
 pub const IX_U64_STATUS: u8 = 2;
@@ -77,6 +79,7 @@ pub fn initialize(
       org_name: msg.org_name.clone(),
       org_wallet: msg.org_wallet.clone(),
       org_logo_url: msg.org_logo_url.clone(),
+      terms: msg.terms.clone(),
     },
   )?;
 

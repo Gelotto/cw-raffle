@@ -7,23 +7,21 @@ use crate::{
 use cosmwasm_std::{attr, Addr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128};
 use cw_lib::{
   models::Token,
-  utils::funds::{build_cw20_transfer_msg, build_send_msg},
+  utils::funds::{build_cw20_transfer_submsg, build_send_msg, get_token_balance},
 };
 
 // addresses for gelotto taxes:
 pub const GELOTTO_ADDR: &str = "juno1jume25ttjlcaqqjzjjqx9humvze3vcc8z87szj";
-pub const GELOTTO_ANNUAL_PRIZE_ADDR: &str = "juno1fxu5as8z5qxdulujzph3rm6c39r8427mjnx99r";
 pub const GELOTTO_NFT_1_REWARDS_ADDR: &str = "juno18fd2xax0uh9dxusg8uae5rkeu8a4sv3gk6zm7h";
 pub const GELOTTO_NFT_2_REWARDS_ADDR: &str = "juno13c97054tjktvzvgqe2xfxj28j6wmhhlz03ut32";
 pub const GELOTTO_OWNERS_ADDR: &str = "juno1dunhw3y4m6lu642lk20hfq9q3scr70l2vuyrwj";
 
 // percentages for tax allocations:
-pub const GELOTTO_ANNUAL_PRIZE_PCT: u8 = 5;
-pub const GELOTTO_PCT: u8 = 1;
-pub const GELOTTO_NFT_1_REWARDS_PCT: u8 = 1;
-pub const GELOTTO_NFT_2_REWARDS_PCT: u8 = 1;
-pub const GELOTTO_OWNERS_PCT: u8 = 1;
-pub const RAFFLE_CREATOR_PCT: u8 = 1;
+pub const GELOTTO_PCT: u128 = 200_000;
+pub const GELOTTO_NFT_1_REWARDS_PCT: u128 = 200_000;
+pub const GELOTTO_NFT_2_REWARDS_PCT: u128 = 200_000;
+pub const GELOTTO_OWNERS_PCT: u128 = 200_000;
+pub const RAFFLE_CREATOR_PCT: u128 = 200_000;
 
 pub fn choose_winner(
   deps: DepsMut,
@@ -38,12 +36,6 @@ pub fn choose_winner(
 
   if raffle.tickets_sold == 0 {
     return Err(ContractError::AlreadyClaimed {});
-  }
-
-  if let Some(threshold) = raffle.ticket_sales_target {
-    if raffle.tickets_sold < threshold {
-      return Err(ContractError::BelowTicketSalesThreshold {});
-    }
   }
 
   // prevent raffle from being double-ended
@@ -71,21 +63,27 @@ pub fn choose_winner(
     if let RaffleAsset::Token { token, amount, .. } = &asset {
       match token {
         Token::Native { denom } => send_msgs.push(build_send_msg(&winning_addr, denom, *amount)?),
-        Token::Cw20 { address: cw20_addr } => {
-          cw20_transfer_msgs.push(build_cw20_transfer_msg(&winning_addr, cw20_addr, *amount)?)
-        },
+        Token::Cw20 { address: cw20_addr } => cw20_transfer_msgs.push(build_cw20_transfer_submsg(
+          &winning_addr,
+          cw20_addr,
+          *amount,
+        )?),
       }
     }
   }
 
-  let total_amount = raffle.price.amount * Uint128::from(raffle.tickets_sold);
+  let total_pot: Uint128 = Uint128::from(raffle.tickets_sold) * raffle.price.amount;
+  let total_royalties = total_pot.multiply_ratio(900_000u128, 1_000_000u128);
+  let balance = get_token_balance(deps.querier, &env.contract.address, &raffle.price.token)?;
+  let total_taxes = balance - total_royalties;
+
+  // let total_amount = get_token_balance(deps.querier, &env.contract.address, &raffle.price.token)?;
   let owner = RAFFLE_OWNER.load(deps.storage)?;
-  let mut total_tax_pct = 0u8;
+  let mut total_tax_pct = 0u128;
 
   // prepare list of (addr, tax_amount) tuples for building send msgs
-  let tax_addrs: Vec<(Addr, Uint128)> = [
+  let tax_payouts: Vec<(Addr, Uint128)> = [
     (GELOTTO_ADDR, GELOTTO_PCT),
-    (GELOTTO_ANNUAL_PRIZE_ADDR, GELOTTO_ANNUAL_PRIZE_PCT),
     (GELOTTO_NFT_1_REWARDS_ADDR, GELOTTO_NFT_1_REWARDS_PCT),
     (GELOTTO_NFT_2_REWARDS_ADDR, GELOTTO_NFT_2_REWARDS_PCT),
     (GELOTTO_OWNERS_ADDR, GELOTTO_OWNERS_PCT),
@@ -98,25 +96,19 @@ pub fn choose_winner(
   })
   .collect();
 
-  // compute total amount of proceeds remaining after tax, which is further
-  // divided among royalty recipients, according to their assigned
-  // percentages.
-  let total_after_tax =
-    (Uint128::from(100u8 - total_tax_pct) * total_amount) / Uint128::from(100u8);
-
   // build transfer msgs for sending proceeds to royalty recipients and gelotto
   match &raffle.price.token {
     Token::Native { denom } => {
       // send royalties
       for result in ROYALTIES.iter(deps.storage)? {
         if let Ok(recipient) = result {
-          let amount = (Uint128::from(recipient.pct) * total_after_tax) / Uint128::from(100u8);
+          let amount = total_royalties.multiply_ratio(recipient.pct, 100u128);
           send_msgs.push(build_send_msg(&recipient.address, denom, amount)?);
         }
       }
       // send gelotto taxes
-      for (addr, pct) in tax_addrs.iter() {
-        let tax_amount = ((*pct) * total_amount) / Uint128::from(100u8);
+      for (addr, pct) in tax_payouts.iter() {
+        let tax_amount = total_taxes.multiply_ratio(*pct, 1_000_000u128);
         send_msgs.push(build_send_msg(addr, denom, tax_amount)?);
       }
     },
@@ -124,8 +116,8 @@ pub fn choose_winner(
       // send royalties
       for result in ROYALTIES.iter(deps.storage)? {
         if let Ok(recipient) = result {
-          let amount = (Uint128::from(recipient.pct) * total_after_tax) / Uint128::from(100u8);
-          cw20_transfer_msgs.push(build_cw20_transfer_msg(
+          let amount = (Uint128::from(recipient.pct) * total_royalties) / Uint128::from(100u8);
+          cw20_transfer_msgs.push(build_cw20_transfer_submsg(
             &recipient.address,
             cw20_addr,
             amount,
@@ -133,9 +125,9 @@ pub fn choose_winner(
         }
       }
       // send gelotto taxes
-      for (addr, pct) in tax_addrs.iter() {
-        let tax_amount = ((*pct) * total_amount) / Uint128::from(100u8);
-        cw20_transfer_msgs.push(build_cw20_transfer_msg(addr, cw20_addr, tax_amount)?);
+      for (addr, pct) in tax_payouts.iter() {
+        let tax_amount = total_taxes.multiply_ratio(*pct, 1_000_000u128);
+        cw20_transfer_msgs.push(build_cw20_transfer_submsg(addr, cw20_addr, tax_amount)?);
       }
     },
   }

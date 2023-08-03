@@ -1,6 +1,6 @@
 [package]
 name = "cw-raffle"
-version = "0.0.32"
+version = "0.0.34"
 authors = []
 edition = "2018"
 description = "Raffle Smart Contract"
@@ -39,7 +39,8 @@ serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.38" }
 cw-lib = { version = "0.1.0", path = "../cw-lib" }
 cw_repository = { version = "0.0.3", path = "../cw-repository", features = ["library"] }
-cw-acl = { version = "0.0.3", path = "../cw-acl", features = ["library"] }
+cw-acl = { version = "0.0.4", path = "../cw-acl", features = ["library"] }
+house-staking = { version = "0.0.5", path = "../house-staking", features = ["library"] }
 
 [dev-dependencies]
 cw-multi-test = { version = "0.16.2" }

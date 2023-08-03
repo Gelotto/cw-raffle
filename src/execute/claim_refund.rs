@@ -6,7 +6,7 @@ use crate::{
 use cosmwasm_std::{attr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128};
 use cw_lib::{
   models::Token,
-  utils::funds::{build_cw20_transfer_msg, build_send_msg},
+  utils::funds::{build_cw20_transfer_submsg, build_send_msg},
 };
 
 pub fn claim_refund(
@@ -51,7 +51,7 @@ pub fn claim_refund(
       Token::Native { denom } => {
         native_transfer_msgs.push(build_send_msg(&info.sender, denom, refund_amount)?)
       },
-      Token::Cw20 { address: cw20_addr } => cw20_transfer_msgs.push(build_cw20_transfer_msg(
+      Token::Cw20 { address: cw20_addr } => cw20_transfer_msgs.push(build_cw20_transfer_submsg(
         &info.sender,
         cw20_addr,
         refund_amount,

@@ -6,7 +6,7 @@ use crate::{
 use cosmwasm_std::{attr, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg};
 use cw_lib::{
   models::Token,
-  utils::funds::{build_cw20_transfer_msg, build_send_msg},
+  utils::funds::{build_cw20_transfer_submsg, build_send_msg},
 };
 
 pub fn cancel(
@@ -38,7 +38,7 @@ pub fn cancel(
           native_transfer_msgs.push(build_send_msg(&owner, denom, *amount)?)
         },
         Token::Cw20 { address: cw20_addr } => {
-          cw20_transfer_msgs.push(build_cw20_transfer_msg(&owner, cw20_addr, *amount)?)
+          cw20_transfer_msgs.push(build_cw20_transfer_submsg(&owner, cw20_addr, *amount)?)
         },
       }
     }
